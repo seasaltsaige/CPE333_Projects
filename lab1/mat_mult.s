@@ -1,6 +1,9 @@
 # Saige Sloan
 # Cal Poly SLO
-#
+# Description: The following program implements a simple
+#              algorithm for finding the matrix product of two
+#              square N x N matricies.
+
 .data
   SIZE:    .word 5
   MAT_A:   .word  1, 2, 5, 8, 7,
@@ -100,47 +103,47 @@ init:
 mat_mult:
   addi sp, sp, -36
   sw   ra, 32(sp)
-  sw   s0, 28(sp) # Used for i
-  sw   s1, 24(sp) # Used for j
-  sw   s2, 20(sp) # Used for k
-  sw   s3, 16(sp) # Used to sum row/col mults
-  sw   s4, 12(sp) # addr[A]
-  sw   s5, 8(sp)  # addr[B]
-  sw   s6, 4(sp)  # addr[outMat]
-  sw   s7, 0(sp)  # size
+  sw   s0, 28(sp)             # Used for i
+  sw   s1, 24(sp)             # Used for j
+  sw   s2, 20(sp)             # Used for k
+  sw   s3, 16(sp)             # Used to sum row/col mults
+  sw   s4, 12(sp)             # addr[A]
+  sw   s5, 8(sp)              # addr[B]
+  sw   s6, 4(sp)              # addr[outMat]
+  sw   s7, 0(sp)              # size
 
-  mv   s4, a0 # Copy addr[A]
-  mv   s5, a1 # Copy addr[B]
-  mv   s6, a3 # Copy addr[outMat]
-  mv   s7, a2 # Copy size
+  mv   s4, a0                 # Copy addr[A]
+  mv   s5, a1                 # Copy addr[B]
+  mv   s6, a3                 # Copy addr[outMat]
+  mv   s7, a2                 # Copy size
   
-  mv   s0, zero # i counter
+  mv   s0, zero               # i counter
   loop_i:
 
-    bge s0, s7, end_i # If i >= SIZE (end of row)
+    bge s0, s7, end_i         # If i >= SIZE (end of row)
 
-    mv  s1, zero # j counter
+    mv  s1, zero              # j counter
     loop_j:
 
-      bge s1, s7, end_j # If j >= SIZE (end of col)
-      mv  s3, zero # clear accumulator for each matrix cell
-      mv  s2, zero # k counter
+      bge s1, s7, end_j       # If j >= SIZE (end of col)
+      mv  s3, zero            # clear accumulator for each matrix cell
+      mv  s2, zero            # k counter
       loop_k:
-        bge s 2, s7, end_k # If k >= SIZE
+        bge s2, s7, end_k    # If k >= SIZE
         # Get mat_A[i][k]
         
         # Note: s0 = i, s7 = size
         mv   a0, s0 
         mv   a1, s7
-        call multiply # yields i*size
-        add  a0, a0, s2 # i*size + k
+        call multiply       # yields i*size
+        add  a0, a0, s2     # i*size + k
 
-        slli a0, a0, 2  # Multiply by 4
-                        # WORD offset
+        slli a0, a0, 2      # Multiply by 4
+                            # WORD offset
 
         # Add base address of A
-        add  a0, a0, s4 # yields addr[A[i][k]]
-        lw   t0, 0(a0) # Get value from memory
+        add  a0, a0, s4     # yields addr[A[i][k]]
+        lw   t0, 0(a0)      # Get value from memory
 
         # Get mat_B[i][k]
         # Similar as for A
@@ -148,20 +151,20 @@ mat_mult:
         # Note: s2 = k, s7 = size
         mv   a0, s2 
         mv   a1, s7
-        call multiply # yields k*size
-        add  a0, a0, s1 # k*size + j
-        slli a0, a0, 2 # Multiply by 4
+        call multiply       # yields k*size
+        add  a0, a0, s1     # k*size + j
+        slli a0, a0, 2      # Multiply by 4
 
         # Add base address of B now
-        add  a0, a0, s5 # yields addr[B[k][j]] now
-        lw   t2, 0(a0) # Load val from mem
+        add  a0, a0, s5     # yields addr[B[k][j]] now
+        lw   t2, 0(a0)      # Load val from mem
 
         # Multiply the two values above (t0 * t2)
         mv   a0, t0
-        mv   a1, t2 # Copy values to args
+        mv   a1, t2         # Copy values to args
         call multiply
 
-        add  s3, s3, a0 # Add output to accumulator
+        add  s3, s3, a0     # Add output to accumulator
         addi s2, s2, 1
 
         j    loop_k
@@ -171,13 +174,13 @@ mat_mult:
       # Calculate output matrix location/address
       mv   a0, s0
       mv   a1, s7
-      call multiply # i*size
-      add  a0, a0, s1 # i*size + j
-      slli a0, a0, 2 # mult by 4
+      call multiply         # i*size
+      add  a0, a0, s1       # i*size + j
+      slli a0, a0, 2        # mult by 4
       
       # Get out mat address
-      add  a0, a0, s6 # yields addr[outMat[i][j]]
-      sw   s3, 0(a0) # store accumulated value in out matrix
+      add  a0, a0, s6       # yields addr[outMat[i][j]]
+      sw   s3, 0(a0)        # store accumulated value in out matrix
 
       addi s1, s1, 1
       j    loop_j
@@ -189,7 +192,7 @@ mat_mult:
 
 
 
-
+  # Restore context
   lw   s7, 0(sp)
   lw   s6, 4(sp)
   lw   s5, 8(sp)
@@ -211,8 +214,8 @@ multiply:
   addi sp, sp, -4
   sw   ra, 0(sp)
 
-  mv   t6, a0 # Make copy
-  mv   a0, zero # Init return accum
+  mv   t6, a0           # Make copy
+  mv   a0, zero         # Init return accum
 
   mult_loop: 
     beqz a1, end_mult
