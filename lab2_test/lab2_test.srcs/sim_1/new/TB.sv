@@ -26,6 +26,8 @@ module TB();
     logic [15:0] SWITCHES,LEDS;
     logic [7:0] CATHODES,VGA_RGB;
     logic [3:0] ANODES;
+    
+    logic [63:0] counter;
    
     OTTER_Wrapper wrapper (
        .CLK(CLK),
@@ -45,8 +47,9 @@ module TB();
 
     initial forever  #1  CLK =  ! CLK; 
    
-    
+       
     initial begin
+        counter = 0;
         BTNC=1;
         #600 
         BTNC=0;
@@ -55,6 +58,12 @@ module TB();
       //$finish;
     end
     
+   
+    always @(*) begin
+        if (CLK == 1) begin
+            counter = counter + 1;
+        end
+    end
     
        
   /*  initial begin

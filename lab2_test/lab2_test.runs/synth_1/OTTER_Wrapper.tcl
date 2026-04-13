@@ -58,6 +58,7 @@ if {$::dispatch::connected} {
 OPTRACE "synth_1" START { ROLLUP_AUTO }
 set_param general.usePosixSpawnForFork 1
 set_param chipscope.maxJobs 3
+set_param xicom.use_bs_reader 1
 OPTRACE "Creating in-memory project" START { }
 create_project -in_memory -part xc7a35tcpg236-1
 
@@ -107,6 +108,8 @@ read_xdc G:/projects/CPE333_Projects/lab2_test/lab2_test.srcs/constrs_1/imports/
 set_property used_in_implementation false [get_files G:/projects/CPE333_Projects/lab2_test/lab2_test.srcs/constrs_1/imports/OTTER-multicyle-1-cycle-memory/Basys3_constraints-1.xdc]
 
 set_param ips.enableIPCacheLiteLoad 1
+
+read_checkpoint -auto_incremental -incremental G:/projects/CPE333_Projects/lab2_test/lab2_test.srcs/utils_1/imports/synth_1/OTTER_Wrapper.dcp
 close [open __synthesis_is_running__ w]
 
 OPTRACE "synth_design" START { }
