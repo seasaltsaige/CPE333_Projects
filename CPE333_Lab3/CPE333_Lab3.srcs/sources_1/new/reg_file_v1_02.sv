@@ -58,11 +58,11 @@ module RegFile(
     always_ff @( posedge clk)
     begin
         if ( (en == 1) && (w_adr != 0) )
-            reg_file[w_adr] <= w_data;       
+            reg_file[w_adr] <= w_data;
     end
-    
+
     //- asynchronous reads
-    assign rs1 = reg_file[adr1];
-    assign rs2 = reg_file[adr2];
+    assign rs1 = (en && w_adr == adr1 && adr1 != 0) ? w_data : reg_file[adr1];
+    assign rs2 = (en && w_adr == adr2 && adr2 != 0) ? w_data : reg_file[adr2];
     
 endmodule

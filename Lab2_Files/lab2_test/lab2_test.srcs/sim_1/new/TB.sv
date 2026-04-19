@@ -54,8 +54,6 @@ module TB();
         #600 
         BTNC=0;
         SWITCHES=15'd0;
-
-      //$finish;
     end
     
    
