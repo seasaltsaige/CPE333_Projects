@@ -4,6 +4,24 @@
 parameter ENABLE = 1'b1;
 parameter DISABLE = 1'b0;
 
+
+typedef struct packed {
+    logic [31:0] pc;
+} FD_instr;
+
+typedef struct packed {
+
+} DE_instr;
+
+typedef struct packed {
+
+} EM_instr;
+
+typedef struct packed {
+    
+} MW_instr;
+
+
 typedef enum logic [1:0] {
     PC4     = 2'b00,
     CSR     = 2'b01,

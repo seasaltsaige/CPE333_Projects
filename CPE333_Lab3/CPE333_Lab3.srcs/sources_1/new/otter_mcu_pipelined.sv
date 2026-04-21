@@ -54,9 +54,6 @@ module OTTER_MCU(
     instr_t DE_EX_instr;
     instr_t EX_MEM_instr;
     instr_t MEM_WB_instr;
-
-    // logic mepc_we, csr_we, mie, int_taken;
-    // logic [31:0] mepc, mtvec, csr_rd;
 //==== Instruction Fetch ===========================================
 
     // logic [31:0] IR;
@@ -66,6 +63,7 @@ module OTTER_MCU(
 
     logic [31:0] next_pc, pc_in, pc_out, jalr_pc, branch_pc, jal_pc;
 
+    // Input mux for program counter
     mux_4t1_nb #(.n(32)) PC_mux_4t1_nb (
         .SEL(PC_SEL),
         .D0(next_pc),
@@ -75,6 +73,7 @@ module OTTER_MCU(
         .D_OUT(pc_in)
     );
 
+    // PC
     PC OTTER_PC (
         .clk(CLK),
         .PC_RESET(RESET),
@@ -84,8 +83,8 @@ module OTTER_MCU(
     );
 
    
-    assign PC_WE = 1'b1;
-    assign memRead1 = 1'b1;
+    assign PC_WE = 1'b1; // Assumes PC write always for lab 3
+    assign memRead1 = 1'b1; // same for instruction mem read
     assign next_pc = pc_out + 4;
     
 
@@ -130,17 +129,22 @@ module OTTER_MCU(
     // check which rs's are used to pass on
     assign opcode = opcode_t'(IF_DE_ir[6:0]);
 
+    // rs1 used on everything except lui, auipc, and jal
     assign rs1_used = ((opcode != LUI) && (opcode != AUIPC) && (opcode != JAL));
+    // rs2 used on branch, store, and rg3 instructions
     assign rs2_used = ((opcode == BRANCH) || (opcode == STORE) || (opcode == OP_RG3));
 
+    // write to regs on all instructions except branch and store 
     assign rd_used = ((opcode != BRANCH) && (opcode != STORE));
-
-    assign memWrite = (opcode == STORE);
-    assign memRead2 = (opcode == LOAD);
-    assign regWrite = ((opcode != BRANCH) && (opcode != STORE));
-
+    
+    assign memWrite = (opcode == STORE); // write to memory on store instructions
+    assign memRead2 = (opcode == LOAD); // read from data memory on loads
+    // write to regs on all instructions except branch and store
+    assign regWrite = ((opcode != BRANCH) && (opcode != STORE)); 
+    
     logic [31:0] j_immed, b_immed, u_immed, i_immed, s_immed;
 
+    // Immediate generator
     immed_gen OTTER_immed_gen (
         .ir(IF_DE_ir),
         .j_type(j_immed),
@@ -150,6 +154,7 @@ module OTTER_MCU(
         .s_type(s_immed)
     );
     
+    // srcA mux
     mux_2t1_nb #(.n(32)) ALU_A_mux_2t1_nb (
         .SEL(alu_srcA_SEL),
         .D0(rs1),
@@ -157,6 +162,7 @@ module OTTER_MCU(
         .D_OUT(alu_A)
     );
 
+    // srcB mux
     mux_4t1_nb #(.n(32)) ALU_B_mux_4t1_nb(
         .SEL(alu_srcB_SEL),
         .D0(rs2),
@@ -178,6 +184,8 @@ module OTTER_MCU(
                  DE_EX_b_immed,
                  DE_EX_j_immed;
 
+
+    // Create the instruction register
     always_ff @(posedge CLK) begin
         DE_EX_rs2 <= rs2; // needed for memory access
         DE_EX_srcA <= alu_A;
@@ -262,7 +270,7 @@ module OTTER_MCU(
     end
 
 
-    // alu
+    // ALU
     riscv_alu OTTER_riscv_alu (
         .alu_fun(DE_EX_instr.alu_fun),
         .srcA(DE_EX_srcA),
@@ -327,12 +335,6 @@ module OTTER_MCU(
         .D3(MEM_WB_alu_res),
         .D_OUT(rf_in)
     );
-
-    
-
- 
- 
-
        
             
 endmodule
