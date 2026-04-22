@@ -47,10 +47,10 @@ module CU_DCDR(
    input [2:0] func3,    //-  ir[14:12]
    
    input int_taken,
-   output logic [3:0] ALU_FUN,
-   output logic [1:0] srcA_SEL, 
-   output logic [2:0] srcB_SEL, 
-   output logic [1:0] RF_SEL
+   output alu_fun ALU_FUN,
+   output alu_src_a_t srcA_SEL, 
+   output alu_src_b_t srcB_SEL, 
+   output rf_sel_t RF_SEL
 	);
 
    // Cast opcode to opcode_t enum type   

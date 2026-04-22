@@ -28,16 +28,16 @@ module riscv_alu(
 );
 
     parameter [3:0] alu_add=4'b0000, 
-                   alu_sub=4'b1000, 
-                   alu_or=4'b0110, 
-                   alu_and=4'b0111, 
-                   alu_xor=4'b0100,
-                   alu_srl=4'b0101,
-                   alu_sll=4'b0001,
-                   alu_sra=4'b1101,
-                   alu_slt=4'b0010,
-                   alu_sltu=4'b0011,
-                   alu_lui=4'b1001;
+                    alu_sub=4'b1000, 
+                    alu_or=4'b0110, 
+                    alu_and=4'b0111, 
+                    alu_xor=4'b0100,
+                    alu_srl=4'b0101,
+                    alu_sll=4'b0001,
+                    alu_sra=4'b1101,
+                    alu_slt=4'b0010,
+                    alu_sltu=4'b0011,
+                    alu_lui=4'b1001;
 
 
     always @(*) begin

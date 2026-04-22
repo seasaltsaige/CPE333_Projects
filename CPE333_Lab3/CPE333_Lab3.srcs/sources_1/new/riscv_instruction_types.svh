@@ -5,22 +5,6 @@ parameter ENABLE = 1'b1;
 parameter DISABLE = 1'b0;
 
 
-typedef struct packed {
-    logic [31:0] pc;
-} FD_instr;
-
-typedef struct packed {
-
-} DE_instr;
-
-typedef struct packed {
-
-} EM_instr;
-
-typedef struct packed {
-    
-} MW_instr;
-
 
 typedef enum logic [1:0] {
     PC4     = 2'b00,
@@ -29,25 +13,28 @@ typedef enum logic [1:0] {
     ALU_RES = 2'b11
 } rf_sel_t;
 
+typedef enum logic [2:0] { 
+    U_TYPE = 3'b000
+} extender_sel_t;
+
 typedef enum logic {
-    RS1   = 2'b00,
-    UTYPE = 2'b01
+    RS1   = 1'b0,
+    UTYPE = 1'b1
     // NRS1  = 2'b10
 } alu_src_a_t;
 
 typedef enum logic [1:0] {
-    RS2    = 3'b000,
-    ITYPE  = 3'b001,
-    STYPE  = 3'b010,
-    ALU_PC = 3'b011
-    // CSR_RD = 3'b100
+    RS2    = 2'b00,
+    ITYPE  = 2'b01,
+    STYPE  = 2'b10,
+    ALU_PC = 2'b11
 } alu_src_b_t;
 
 typedef enum logic [1:0] {
-    PC_SEL_PC     = 3'b000,
-    PC_SEL_JALR   = 3'b001,
-    PC_SEL_BRANCH = 3'b010,
-    PC_SEL_JAL    = 3'b011
+    PC_SEL_PC     = 2'b00,
+    PC_SEL_JALR   = 2'b01,
+    PC_SEL_BRANCH = 2'b10,
+    PC_SEL_JAL    = 2'b11
 } pc_sel_t;
 
 typedef enum logic [6:0] {
@@ -125,5 +112,48 @@ typedef enum logic {
     REG_SRL = 1'b0,
     REG_SRA = 1'b1
 } reg_r_shft_f7_t;
+
+
+
+
+typedef struct packed {
+    logic [31:0] ir;
+    logic [31:0] pc;
+    logic [3:0] alu_fun;
+    logic mem_we;
+    logic mem_re_2;
+    logic reg_we;
+    rf_sel_t rf_sel;
+    alu_src_a_t alu_src_A_sel;
+    alu_src_b_t alu_src_B_sel;
+    logic [31:0] rs1;
+    logic [31:0] rs2;
+    logic rs1_used;
+    logic rs2_used;
+    logic rd_used;
+} DE_instr;
+
+typedef struct packed {
+    logic [31:0] ir;
+    logic [31:0] pc;
+    logic mem_we;
+    logic mem_re_2;
+    logic reg_we;
+    logic [1:0] rf_sel;
+    logic [31:0] alu_result;
+    logic [31:0] rs1;
+    logic [31:0] rs2;
+    logic rs1_used;
+    logic rs2_used;
+    logic rd_used;
+} EM_instr;
+
+typedef struct packed {
+    logic [31:0] ir;
+    logic [31:0] pc;
+    logic reg_we;
+    logic [1:0] rf_sel;
+    logic [31:0] alu_result;
+} MW_instr;
 
 `endif

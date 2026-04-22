@@ -45,9 +45,9 @@
  module mux_4t1_nb  #(parameter n=8) (
        input wire [1:0] SEL,
        input wire [n-1:0] D0, 
-	   input wire [n-1:0] D1, 
-	   input wire [n-1:0] D2, 
-	   input wire [n-1:0] D3, 
+	 input wire [n-1:0] D1, 
+	 input wire [n-1:0] D2, 
+	 input wire [n-1:0] D3, 
        output reg [n-1:0] D_OUT);  
  
         

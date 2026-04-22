@@ -63,13 +63,13 @@ module OTTER_Wrapper(
 
     //- Instantiate RISC-V OTTER MCU 
     OTTER_MCU MY_OTTER_MCU (
-        .CLK        (s_clk),
-        .INTR       (1'b0),
-        .RESET      (s_reset),
-        .IOBUS_IN   (IOBUS_in),
-        .IOBUS_OUT  (IOBUS_out),
-        .IOBUS_ADDR (IOBUS_addr),
-        .IOBUS_WR   (IOBUS_wr)
+        .clk        (s_clk),
+        .intr       (1'b0),
+        .rst      (s_reset),
+        .iobus_in   (IOBUS_in),
+        .iobus_out  (IOBUS_out),
+        .iobus_addr (IOBUS_addr),
+        .iobus_wr   (IOBUS_wr)
     );
     //- Divide clk by 2 
     always_ff @ (posedge clk)
