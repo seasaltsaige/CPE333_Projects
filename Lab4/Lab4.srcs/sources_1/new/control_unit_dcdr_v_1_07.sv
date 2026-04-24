@@ -51,6 +51,7 @@ module CU_DCDR(
    output alu_src_a_t srcA_SEL, 
    output alu_src_b_t srcB_SEL, 
    output extender_sel_t extender_SEL,
+   output bag_base_sel_t bag_SEL,
    output rf_sel_t RF_SEL
 	);
 
@@ -84,6 +85,7 @@ module CU_DCDR(
       RF_SEL   = PC4;
       ALU_FUN  = ALU_ADD;
       extender_SEL = EXT_ITYPE;
+      bag_SEL = BAG_PC;
 		
 
       case(OPCODE)
@@ -103,10 +105,12 @@ module CU_DCDR(
          JAL: begin
             RF_SEL = PC4;
             extender_SEL = EXT_JTYPE;
+            bag_SEL = BAG_PC;
          end
          JALR: begin
             RF_SEL = PC4;
             extender_SEL = EXT_ITYPE;
+            bag_SEL = BAG_RS;
          end
          LOAD: begin
             ALU_FUN = ALU_ADD; 
@@ -123,13 +127,14 @@ module CU_DCDR(
          end
          BRANCH: begin
             extender_SEL = EXT_BTYPE;
+            bag_SEL = BAG_PC;
          end
          OP_IMM: begin
             
             srcA_SEL = RS1; 
             srcB_SEL = ITYPE;
             RF_SEL = ALU_RES; 
-            extender_SEL = EXT_ITYPE
+            extender_SEL = EXT_ITYPE;
             
             case(IMMED_F3)
                ADDI: begin // ADDI

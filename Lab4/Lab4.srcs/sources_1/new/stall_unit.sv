@@ -4,9 +4,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 04/23/2026 01:29:26 PM
+// Create Date: 04/23/2026 04:18:22 PM
 // Design Name: 
-// Module Name: HazardUnit
+// Module Name: stall_unit
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -21,17 +21,22 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module HazardUnit(
-    
-
-    // output control signals
-    output logic stall_fe;
-    output logic stall_de;
-    output logic flush_de;
-    output logic flush_ex;
+module stall_unit(
+    input stage_info DE, EX,
+    output logic stall_FE,
+    output logic stall_DE,
+    output logic flush_EX
     );
 
 
+    logic is_hazard;
+    assign is_hazard = (
+        EX.mem_re_2 && ((EX.rd == DE.rs1) || (EX.rd == DE.rs2)) &&
+        (EX.rd != 0) 
+    );
 
+    assign stall_FE = is_hazard;
+    assign stall_DE = is_hazard;
+    assign flush_EX = is_hazard;
 
 endmodule

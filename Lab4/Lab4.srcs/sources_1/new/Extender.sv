@@ -2,9 +2,9 @@
 `include "riscv_instruction_types.svh";
 
 module Extender(
-  extender_sel_t immed_sel;
-  input logic [31:0] ir;
-  output logic [31:0] immed;
+  input extender_sel_t immed_sel,
+  input logic [31:0] ir,
+  output logic [31:0] immed
   );
 
     always_comb begin

@@ -40,6 +40,7 @@ module OTTER_MCU(
 
     // FD 'register'
     logic [31:0] FD_pc, FD_ir;
+    logic [31:0] mem_ir;
     logic mem_re_1 = 1'b1; // always enabled in this lab
 
     logic [1:0] pc_sel;
@@ -67,13 +68,15 @@ module OTTER_MCU(
     // FD pipeline register
     always_ff @( posedge clk ) begin
         FD_pc <= pc_out;
+        FD_ir <= mem_ir;
     end
 
 
     // Decode Stage
     logic [3:0] alu_fn;
-    logic srcA_sel;
-    logic [1:0] srcB_sel, rf_mux_sel;
+    alu_src_a_t srcA_sel;
+    alu_src_b_t srcB_sel;
+    rf_sel_t rf_mux_sel;
 
     logic [31:0] rs1, rs2;
 
@@ -279,7 +282,7 @@ module OTTER_MCU(
         .MEM_SIGN  (EM_instr_reg.ir[14]),
         .IO_IN     (iobus_in), // from io
         .IO_WR     (iobus_wr), // from io
-        .MEM_DOUT1 (FD_ir), // to fetch stage
+        .MEM_DOUT1 (mem_ir), // to fetch stage
         .MEM_DOUT2 (MW_dmem_out)
     );
 

@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "riscv_instruction_types.svh";
 //////////////////////////////////////////////////////////////////////////////////
 // Company: Cal Poly SLO
 // Engineer: Saige Sloan 
@@ -20,33 +21,12 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module branch_gen(
-        input [31:0] pc_addr,
-        input [31:0] j_type,
-        input [31:0] b_type,
-        input [31:0] i_type,
-        input [31:0] rs,
-        
-        output reg [31:0] jal,
-        output reg [31:0] branch,
-        output reg [31:0] jalr
+module branch_addr_gen(
+        input [31:0] base_addr,
+        input [31:0] immed, 
+        output logic [31:0] branch_target
     );
     
-    
-    always @(*) begin
-        // X[rd] ← PC + 4; 
-        // PC ← PC + sext(imm)
-        jal <= pc_addr + j_type;
-
-        // X[rd] ← PC+4; 
-        // PC ← (X[rs1] + sext(imm)) & ~1
-        jalr <= (rs + i_type) & ~1;
-
-        // PC ← PC + sext(imm) 
-        branch <= pc_addr + b_type;
-    end
-    
-
-
+    assign branch_target = base_addr + immed;
     
 endmodule

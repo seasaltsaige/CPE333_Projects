@@ -5,12 +5,17 @@ parameter ENABLE = 1'b1;
 parameter DISABLE = 1'b0;
 
 typedef enum logic [2:0] { 
-    EXT_ITYPE = 3'b000;
-    EXT_STYPE = 3'b001;
-    EXT_BTYPE = 3'b010;
-    EXT_UTYPE = 3'b011;
-    EXT_JTYPE = 3'b100;
+    EXT_ITYPE = 3'b000,
+    EXT_STYPE = 3'b001,
+    EXT_BTYPE = 3'b010,
+    EXT_UTYPE = 3'b011,
+    EXT_JTYPE = 3'b100
 } extender_sel_t;
+
+typedef enum logic {
+    BAG_PC = 0,
+    BAG_RS = 1
+} bag_base_sel_t;
 
 typedef enum logic [1:0] {
     PC4     = 2'b00,
@@ -32,11 +37,9 @@ typedef enum logic [1:0] {
     ALU_PC = 2'b11
 } alu_src_b_t;
 
-typedef enum logic [1:0] {
-    PC_SEL_PC     = 2'b00,
-    PC_SEL_JALR   = 2'b01,
-    PC_SEL_BRANCH = 2'b10,
-    PC_SEL_JAL    = 2'b11
+typedef enum logic {
+    PC_SEL_PC       = 1'b0,
+    PC_SEL_TARGET   = 1'b1
 } pc_sel_t;
 
 typedef enum logic [6:0] {
@@ -134,6 +137,7 @@ typedef struct packed {
     logic rs2_used;
     logic rd_used;
     logic [31:0] immed;
+    logic bag_sel;
 } DE_instr;
 
 typedef struct packed {
@@ -154,9 +158,27 @@ typedef struct packed {
 typedef struct packed {
     logic [31:0] ir;
     logic [31:0] pc;
+    logic mem_we;
+    logic mem_re_2;
     logic reg_we;
     logic [1:0] rf_sel;
     logic [31:0] alu_result;
+    logic rs1_used;
+    logic rs2_used;
+    logic rd_used;
 } MW_instr;
+
+
+typedef struct packed {
+    logic [4:0] rs1, rs2, rd;
+    logic rs1_used, rs2_used, reg_we, mem_re_2;
+    // logic 
+} stage_info;
+
+typedef enum logic [1:0] {
+    DEFAULT = 2'b00,
+    EM      = 2'b01,
+    MW      = 2'b10
+} forward_sel;
 
 `endif

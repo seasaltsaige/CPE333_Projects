@@ -11,34 +11,35 @@ module OTTER_MCU(
     output logic iobus_wr
 );
 
+    stage_info DE_info, EX_info, MEM_info, WB_info;
+
     // Pipeline registers
     DE_instr DE_instr_reg;
     EM_instr EM_instr_reg;
     MW_instr MW_instr_reg;
 
-    // Instruction Fetch
+    // ========================== BEGIN FETCH STAGE ========================== //
 
     // FD 'register'
     logic [31:0] FD_pc, FD_ir;
+    logic [31:0] mem_ir;
     logic mem_re_1 = 1'b1; // always enabled in this lab
 
-    logic [1:0] pc_sel;
-    logic pc_we = 1'b1; // always enabled in this lab
+    // logic [1:0] pc_sel;
+    logic pc_sel;
+    logic pc_we, FD_en, flush_DE, flush_EX;
 
     logic [31:0] pc_out, pc_mux_out, pc_branch, pc_jal, pc_jalr;
+    logic [31:0] branch_target;
 
 
-
-
-
-    mux_4t1_nb #(.n(32)) PC_mux_4t1_nb(
+    mux_2t1_nb #(.n(32)) PC_mux_2t1_nb(
         .SEL   (pc_sel),
         .D0    (pc_out + 4),
-        .D1    (pc_jalr),
-        .D2    (pc_branch),
-        .D3    (pc_jal),
+        .D1    (branch_target),
         .D_OUT (pc_mux_out)
     );
+    
 
     PC OTTER_PC(
         .clk          (clk),
@@ -50,17 +51,29 @@ module OTTER_MCU(
     
     // FD pipeline register
     always_ff @( posedge clk ) begin
-        FD_pc <= pc_out;
+        if (rst || flush_DE) begin 
+            FD_pc <= 32'b0;
+            FD_ir <= 32'b0;
+        end else if (FD_en) begin 
+            FD_pc <= pc_out;
+            FD_ir <= mem_ir;
+        end
     end
+    // ========================== END FETCH STAGE ========================== //
 
 
-    // Decode Stage
+
+    // ========================== BEGIN DECODE STAGE ========================== //
     logic [3:0] alu_fn;
-    logic srcA_sel;
-    logic [1:0] srcB_sel, rf_mux_sel;
+    alu_src_a_t srcA_sel;
+    alu_src_b_t srcB_sel; 
+    rf_sel_t rf_mux_sel;
     logic [2:0] immed_sel;
+    logic [31:0] rf_data;
 
     logic [31:0] rs1, rs2;
+
+    logic bag_sel;
 
     CU_DCDR OTTER_CU_DCDR(
         .opcode         (FD_ir[6:0]),
@@ -71,6 +84,7 @@ module OTTER_MCU(
         .srcA_SEL       (srcA_sel),
         .srcB_SEL       (srcB_sel),
         .extender_SEL   (immed_sel),
+        .bag_SEL        (bag_sel),
         .RF_SEL         (rf_mux_sel)
     );
 
@@ -86,32 +100,16 @@ module OTTER_MCU(
     );
 
 
-    // Temporary
-    // To be replaced by 'extender'
-    // Decoder will select a single immediate output
     logic [31:0] immed;
 
-    Extender(
+    Extender OTTER_Extender(
         .immed_sel(immed_sel),
         .ir(FD_ir),
         .immed(immed)
     );
 
-    // logic [31:0] j_immed, b_immed, u_immed, i_immed, s_immed;
-    // logic [31:0] DE_j_immed, DE_b_immed, DE_u_immed, DE_i_immed, DE_s_immed;
-
-    // immed_gen OTTER_immed_gen(
-    //     .ir     (FD_ir),
-    //     .j_type (j_immed),
-    //     .b_type (b_immed),
-    //     .u_type (u_immed),
-    //     .i_type (i_immed),
-    //     .s_type (s_immed)
-    // );
-    
-
     opcode_t opcode;
-    logic rs1_used, rs2_used, rd_used, mem_we, mem_re_2, reg_we;
+    logic rs1_used, rs2_used, mem_we, mem_re_2, reg_we;
     assign opcode = opcode_t'(FD_ir[6:0]);
 
     // rs1 used on everything except lui, auipc, and jal
@@ -119,114 +117,138 @@ module OTTER_MCU(
     // rs2 used on branch, store, and rg3 instructions
     assign rs2_used = ((opcode == BRANCH) || (opcode == STORE) || (opcode == OP_RG3));
 
-    // write to regs on all instructions except branch and store 
-    assign rd_used = ((opcode != BRANCH) && (opcode != STORE));
-
     assign mem_we = (opcode == STORE); // write to memory on store instructions
     assign mem_re_2 = (opcode == LOAD); // read from data memory on loads
     // write to regs on all instructions except branch and store
     assign reg_we = ((opcode != BRANCH) && (opcode != STORE)); 
 
-
-
     // DE pipeline register
     always_ff @( posedge clk ) begin
-        DE_instr_reg.ir <= FD_ir;
-        DE_instr_reg.pc <= FD_pc;
-        DE_instr_reg.alu_fun <= alu_fn;
-        DE_instr_reg.mem_we <= mem_we;
-        DE_instr_reg.mem_re_2 <= mem_re_2;
-        DE_instr_reg.reg_we <= reg_we;
-        DE_instr_reg.rf_sel <= rf_mux_sel;
-        DE_instr_reg.alu_src_A_sel <= srcA_sel;
-        DE_instr_reg.alu_src_B_sel <= srcB_sel;
-        DE_instr_reg.rs1 <= rs1;
-        DE_instr_reg.rs2 <= rs2;
-        DE_instr_reg.rs1_used <= rs1_used;
-        DE_instr_reg.rs2_used <= rs2_used;
-        DE_instr_reg.rd_used <= rd_used;
-        DE_instr_reg.immed <= immed;
-        // Temporary
-        // // To be replaced by single immediate register (in DE_instr_reg i thinks)
-        // DE_j_immed <= j_immed;
-        // DE_b_immed <= b_immed;
-        // DE_u_immed <= u_immed;
-        // DE_i_immed <= i_immed;
-        // DE_s_immed <= s_immed;   
-
-
+        if (flush_EX) begin
+            DE_instr_reg <= '0;
+        end else begin
+            DE_instr_reg.ir <= FD_ir;
+            DE_instr_reg.pc <= FD_pc;
+            DE_instr_reg.alu_fun <= alu_fn;
+            DE_instr_reg.mem_we <= mem_we;
+            DE_instr_reg.mem_re_2 <= mem_re_2;
+            DE_instr_reg.reg_we <= reg_we;
+            DE_instr_reg.rf_sel <= rf_mux_sel;
+            DE_instr_reg.alu_src_A_sel <= srcA_sel;
+            DE_instr_reg.alu_src_B_sel <= srcB_sel;
+            DE_instr_reg.rs1 <= rs1;
+            DE_instr_reg.rs2 <= rs2;
+            DE_instr_reg.rs1_used <= rs1_used;
+            DE_instr_reg.rs2_used <= rs2_used;
+            DE_instr_reg.immed <= immed;
+            DE_instr_reg.bag_sel <= bag_sel;
+        end  
     end
 
+    // ============= DE INFO FOR HAZARD UNIT ============= //
+    always_comb begin
+        DE_info = '0;
+        DE_info.rs1 = FD_ir[19:15];
+        DE_info.rs2 = FD_ir[24:20];
+        DE_info.rd = FD_ir[11:7];
+        DE_info.rs1_used = rs1_used;
+        DE_info.rs2_used = rs2_used;
+        DE_info.reg_we = reg_we;
+        DE_info.mem_re_2 = mem_re_2;
+    end
+    // ============= DE INFO FOR HAZARD UNIT ============= //
+    // ========================== END DECODE STAGE ========================== //
 
-    // = Execute Stage =
 
+    // ========================== BEGIN EXECUTE STAGE ========================== //
+    // ALU MUX's w/ hazard data forward mux's, BAG, BCG, and ALU
     logic [31:0] aluA, aluB, alu_result;
+    logic [31:0] forward_a_out, forward_b_out;
+    logic [1:0] forward_a_sel, forward_b_sel;
+
+
+
+    mux_4t1_nb #(.n(32)) forward_A_mux_4t1_nb(
+        .SEL   (forward_a_sel),
+        .D0    (DE_instr_reg.rs1),
+        .D1    (EM_instr_reg.alu_result),
+        .D2    (rf_data),
+        .D3    (32'b0),
+        .D_OUT (forward_a_out)
+    );
 
     mux_2t1_nb #(.n(32)) alu_src_A_mux_2t1_nb(
         .SEL   (DE_instr_reg.alu_src_A_sel),
-        .D0    (DE_instr_reg.rs1),
+        .D0    (forward_a_out),
         .D1    (immed),
         .D_OUT (aluA)
     );
 
+
+    mux_4t1_nb #(.n(32)) forward_B_mux_4t1_nb(
+        .SEL   (forward_b_sel),
+        .D0    (DE_instr_reg.rs2),
+        .D1    (EM_instr_reg.alu_result),
+        .D2    (rf_data),
+        .D3    (32'b0),
+        .D_OUT (forward_b_out)
+    );
+
     mux_4t1_nb #(.n(32)) alu_src_B_mux_4t1_nb(
         .SEL   (DE_instr_reg.alu_src_B_sel),
-        .D0    (DE_instr_reg.rs2),
-        .D1    (immed),
-        .D2    (immed),
+        .D0    (forward_b_out),
+        .D1    (DE_instr_reg.immed),
+        .D2    (DE_instr_reg.immed),
         .D3    (DE_instr_reg.pc),
         .D_OUT (aluB)
     );
 
+    logic [31:0] base_addr;
 
     // Temporarily in execute, to be moved to decode
-    branch_gen OTTER_branch_gen(
-        .pc_addr (DE_instr_reg.pc),
-        // TODO: Change this lol
-        .j_type  (immed),
-        .b_type  (immed),
-        .i_type  (immed),
-        .rs      (DE_instr_reg.rs1),
-        .jal     (pc_jal),
-        .branch  (pc_branch),
-        .jalr    (pc_jalr)
+    mux_2t1_nb #(.n(32)) BASE_ADDR_mux_2t1_nb(
+        .SEL   (DE_instr_reg.bag_sel),
+        .D0    (DE_instr_reg.pc),
+        .D1    (forward_a_out),
+        .D_OUT (base_addr)
+    );
+    
+    branch_addr_gen OTTER_branch_addr_gen(
+        .base_addr     (base_addr),
+        .immed         (DE_instr_reg.immed),
+        .branch_target (branch_target)
     );
 
     logic br_eq, br_lt, br_ltu, branch_taken;
 
     BRANCH_COND_GEN OTTER_BRANCH_COND_GEN(
-        .rs1    (DE_instr_reg.rs1),
-        .rs2    (DE_instr_reg.rs2),
+        .rs1    (forward_a_out),
+        .rs2    (forward_b_out),
         .br_eq  (br_eq),
         .br_lt  (br_lt),
         .br_ltu (br_ltu)
     );
 
+
+    opcode_t ex_opcode;
+    assign ex_opcode = opcode_t'(DE_instr_reg.ir[6:0]);
     branch_f3_t func3;
     assign func3 = branch_f3_t'(DE_instr_reg.ir[14:12]);
 
     always_comb begin
-        case (func3)
-            BEQ: branch_taken = br_eq;
-            BNE: branch_taken = ~br_eq;
-            BLT: branch_taken = br_lt;
-            BGE: branch_taken = ~br_lt;
-            BLTU: branch_taken = br_ltu;
-            BGEU: branch_taken = ~br_ltu;
-            default: branch_taken = DISABLE;
-        endcase
-    end
-
-    opcode_t ex_opcode;
-    assign ex_opcode = opcode_t'(DE_instr_reg.ir[6:0]);
-
-    always_comb begin
-        case (ex_opcode)
-            JAL: pc_sel = PC_SEL_JAL;
-            JALR: pc_sel = PC_SEL_JALR;
-            BRANCH: pc_sel = (branch_taken) ? (PC_SEL_BRANCH) : (PC_SEL_PC);
-            default: pc_sel = PC_SEL_PC;
-        endcase
+        if (ex_opcode == BRANCH) begin
+            case (func3)
+                BEQ: branch_taken = br_eq;
+                BNE: branch_taken = ~br_eq;
+                BLT: branch_taken = br_lt;
+                BGE: branch_taken = ~br_lt;
+                BLTU: branch_taken = br_ltu;
+                BGEU: branch_taken = ~br_ltu;
+                default: branch_taken = DISABLE;
+            endcase
+        end else begin
+            branch_taken = DISABLE;
+        end
     end
 
     // End temp in execute
@@ -248,16 +270,28 @@ module OTTER_MCU(
         EM_instr_reg.reg_we <= DE_instr_reg.reg_we;
         EM_instr_reg.rf_sel <= DE_instr_reg.rf_sel;
         EM_instr_reg.alu_result <= alu_result;
-        EM_instr_reg.rs1 <= DE_instr_reg.rs1;
-        EM_instr_reg.rs2 <= DE_instr_reg.rs2;
+        EM_instr_reg.rs1 <= forward_a_out;
+        EM_instr_reg.rs2 <= forward_b_out;
         EM_instr_reg.rs1_used <= DE_instr_reg.rs1_used;
         EM_instr_reg.rs2_used <= DE_instr_reg.rs2_used;
-        EM_instr_reg.rd_used <= DE_instr_reg.rd_used;
     end
 
+    // ============= EX INFO FOR HAZARD UNIT ============= //
+    always_comb begin
+        EX_info = '0;
+        EX_info.rs1 = DE_instr_reg.ir[19:15];
+        EX_info.rs2 = DE_instr_reg.ir[24:20];
+        EX_info.rd = DE_instr_reg.ir[11:7];
+        EX_info.rs1_used = DE_instr_reg.rs1_used;
+        EX_info.rs2_used = DE_instr_reg.rs2_used;
+        EX_info.reg_we = DE_instr_reg.reg_we;
+        EX_info.mem_re_2 = DE_instr_reg.mem_re_2;
+    end
+    // ============= EX INFO FOR HAZARD UNIT ============= //
+    // ========================== END EXECUTE STAGE ========================== //
 
-    // Memory stage
 
+    // ========================== BEGIN MEMORY STAGE ========================== //
     assign iobus_addr = EM_instr_reg.alu_result;
     assign iobus_out = EM_instr_reg.rs2;
 
@@ -275,22 +309,39 @@ module OTTER_MCU(
         .MEM_SIGN  (EM_instr_reg.ir[14]),
         .IO_IN     (iobus_in), // from io
         .IO_WR     (iobus_wr), // from io
-        .MEM_DOUT1 (FD_ir), // to fetch stage
+        .MEM_DOUT1 (mem_ir), // to fetch stage
         .MEM_DOUT2 (MW_dmem_out)
     );
 
-    // MW pipeline reg
+
     always_ff @( posedge clk ) begin
         MW_instr_reg.ir <= EM_instr_reg.ir;
         MW_instr_reg.pc <= EM_instr_reg.pc;
+        MW_instr_reg.mem_we <= EM_instr_reg.mem_we;
+        MW_instr_reg.mem_re_2 <= EM_instr_reg.mem_re_2;
         MW_instr_reg.reg_we <= EM_instr_reg.reg_we;
         MW_instr_reg.rf_sel <= EM_instr_reg.rf_sel;
         MW_instr_reg.alu_result <= EM_instr_reg.alu_result;
+        MW_instr_reg.rs1_used <= EM_instr_reg.rs1_used;
+        MW_instr_reg.rs2_used <= EM_instr_reg.rs2_used;
     end
 
+    // ============= MEM INFO FOR HAZARD UNIT ============= //
+    always_comb begin
+        MEM_info = '0;
+        MEM_info.rs1 = EM_instr_reg.ir[19:15];
+        MEM_info.rs2 = EM_instr_reg.ir[24:20];
+        MEM_info.rd = EM_instr_reg.ir[11:7];
+        MEM_info.rs1_used = EM_instr_reg.rs1_used;
+        MEM_info.rs2_used = EM_instr_reg.rs2_used;
+        MEM_info.reg_we = EM_instr_reg.reg_we;
+        MEM_info.mem_re_2 = EM_instr_reg.mem_re_2;
+    end
+    // ============= MEM INFO FOR HAZARD UNIT ============= //
+    // ========================== END MEMORY STAGE ========================== //
 
-    // Writeback stage
-    logic [31:0] rf_data;   
+
+    // ========================== BEGIN WRITEBACK STAGE ========================== //   
     mux_4t1_nb #(.n(32)) WB_regfile_mux_4t1_nb(
         .SEL   (MW_instr_reg.rf_sel),
         .D0    (MW_instr_reg.pc + 4),
@@ -300,7 +351,35 @@ module OTTER_MCU(
         .D_OUT (rf_data)
     );
     
+    // ============= WB INFO FOR HAZARD UNIT ============= //
+    always_comb begin
+        WB_info = '0;
+        WB_info.rs1 = MW_instr_reg.ir[19:15];
+        WB_info.rs2 = MW_instr_reg.ir[24:20];
+        WB_info.rd = MW_instr_reg.ir[11:7];
+        WB_info.rs1_used = MW_instr_reg.rs1_used;
+        WB_info.rs2_used = MW_instr_reg.rs2_used;
+        WB_info.reg_we = MW_instr_reg.reg_we;
+        WB_info.mem_re_2 = MW_instr_reg.mem_re_2;
+    end
+    // ============= WB INFO FOR HAZARD UNIT ============= //
+    // ========================== END WRITEBACK STAGE ========================== //
 
-
+    // ============= HAZARD UNIT ============= //
+    hazard_unit OTTER_hazard_unit(
+        .DE            (DE_info),
+        .EX            (EX_info),
+        .MEM           (MEM_info),
+        .WB            (WB_info),
+        .branch_taken  (branch_taken),
+        .pc_en         (pc_we),
+        .pc_sel        (pc_sel),
+        .FD_en         (FD_en),
+        .flush_DE      (flush_DE),
+        .flush_EX      (flush_EX),
+        .forward_a_sel (forward_a_sel),
+        .forward_b_sel (forward_b_sel)
+    );
+    // ============= HAZARD UNIT ============= //
 
 endmodule
