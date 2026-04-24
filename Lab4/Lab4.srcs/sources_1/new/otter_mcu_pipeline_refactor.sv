@@ -180,7 +180,7 @@ module OTTER_MCU(
     mux_2t1_nb #(.n(32)) alu_src_A_mux_2t1_nb(
         .SEL   (DE_instr_reg.alu_src_A_sel),
         .D0    (forward_a_out),
-        .D1    (immed),
+        .D1    (DE_instr_reg.immed),
         .D_OUT (aluA)
     );
 
