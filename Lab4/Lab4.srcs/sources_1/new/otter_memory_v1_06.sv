@@ -55,6 +55,7 @@
     input [1:0] MEM_SIZE,   // 0-Byte, 1-Half, 2-Word
     input MEM_SIGN,         // 1-unsigned 0-signed
     input [31:0] IO_IN,     // Data from IO     
+    input CLR_DOUT1,
     //output ERR,
     output logic IO_WR,     // IO 1-write 0-read
     output logic [31:0] MEM_DOUT1 = 32'h00000013,  // Instruction
@@ -107,8 +108,11 @@
       end
 
         // read all data synchronously required for BRAM
-        if(MEM_RDEN1)                       // need EN for extra load cycle to not change instruction
+        if (CLR_DOUT1)
+            MEM_DOUT1 <= 32'h00000013;
+        else if(MEM_RDEN1)                       // need EN for extra load cycle to not change instruction
             MEM_DOUT1 <= memory[MEM_ADDR1];
+        
     //    else
         //    MEM_DOUT1 <= 32'h00000013;
 

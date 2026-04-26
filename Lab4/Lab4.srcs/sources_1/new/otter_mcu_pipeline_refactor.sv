@@ -244,6 +244,8 @@ module OTTER_MCU(
                 BGEU: branch_taken = ~br_ltu;
                 default: branch_taken = DISABLE;
             endcase
+        end else if (ex_opcode == JAL || ex_opcode == JALR) begin
+            branch_taken = ENABLE;
         end else begin
             branch_taken = DISABLE;
         end
@@ -302,6 +304,7 @@ module OTTER_MCU(
     Memory OTTER_Memory(
         .MEM_CLK   (clk),
         .MEM_RDEN1 (mem_re_1),
+        .CLR_DOUT1 (flush_DE),
         .MEM_RDEN2 (EM_instr_reg.mem_re_2),
         .MEM_WE2   (EM_instr_reg.mem_we),
         .MEM_ADDR1 (pc_out[15:2]), // from fetch stage
