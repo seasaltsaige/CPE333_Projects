@@ -57,7 +57,7 @@
     input [31:0] IO_IN,     // Data from IO     
     //output ERR,
     output logic IO_WR,     // IO 1-write 0-read
-    output logic [31:0] MEM_DOUT1,  // Instruction
+    output logic [31:0] MEM_DOUT1 = 32'h00000013,  // Instruction
     output logic [31:0] MEM_DOUT2); // Data
     
     logic [13:0] wordAddr1, wordAddr2;
@@ -109,6 +109,8 @@
         // read all data synchronously required for BRAM
         if(MEM_RDEN1)                       // need EN for extra load cycle to not change instruction
             MEM_DOUT1 <= memory[MEM_ADDR1];
+    //    else
+        //    MEM_DOUT1 <= 32'h00000013;
 
         if(MEM_RDEN2)                         // Read word from memory
             memReadWord <= memory[wordAddr2];

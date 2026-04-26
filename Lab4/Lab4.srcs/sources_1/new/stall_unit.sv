@@ -31,8 +31,10 @@ module stall_unit(
 
     logic is_hazard;
     assign is_hazard = (
-        EX.mem_re_2 && ((EX.rd == DE.rs1) || (EX.rd == DE.rs2)) &&
-        (EX.rd != 0) 
+        EX.mem_re_2 && (
+         (EX.rd == DE.rs1 && DE.rs1_used) || 
+         (EX.rd == DE.rs2 && DE.rs2_used)
+        ) && (EX.rd != 0) 
     );
 
     assign stall_FE = is_hazard;

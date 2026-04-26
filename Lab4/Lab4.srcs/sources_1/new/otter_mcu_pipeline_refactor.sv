@@ -22,14 +22,14 @@ module OTTER_MCU(
 
     // FD 'register'
     logic [31:0] FD_pc, FD_ir;
-    logic [31:0] mem_ir;
-    logic mem_re_1 = 1'b1; // always enabled in this lab
-
     // logic [1:0] pc_sel;
     logic pc_sel;
     logic pc_we, FD_en, flush_DE, flush_EX;
 
-    logic [31:0] pc_out, pc_mux_out, pc_branch, pc_jal, pc_jalr;
+    logic mem_re_1;
+    assign mem_re_1 = ~rst && pc_we;
+
+    logic [31:0] pc_out, pc_mux_out;
     logic [31:0] branch_target;
 
 
@@ -48,15 +48,13 @@ module OTTER_MCU(
         .ADDR_MUX_OUT (pc_mux_out),
         .PC_ADDR      (pc_out)
     );
-    
+
     // FD pipeline register
     always_ff @( posedge clk ) begin
         if (rst || flush_DE) begin 
             FD_pc <= 32'b0;
-            FD_ir <= 32'b0;
         end else if (FD_en) begin 
             FD_pc <= pc_out;
-            FD_ir <= mem_ir;
         end
     end
     // ========================== END FETCH STAGE ========================== //
@@ -124,7 +122,7 @@ module OTTER_MCU(
 
     // DE pipeline register
     always_ff @( posedge clk ) begin
-        if (flush_EX) begin
+        if (rst || flush_EX) begin
             DE_instr_reg <= '0;
         end else begin
             DE_instr_reg.ir <= FD_ir;
@@ -263,17 +261,21 @@ module OTTER_MCU(
 
     // EM pipeline register
     always_ff @( posedge clk ) begin
-        EM_instr_reg.ir <= DE_instr_reg.ir;
-        EM_instr_reg.pc <= DE_instr_reg.pc;
-        EM_instr_reg.mem_we <= DE_instr_reg.mem_we;
-        EM_instr_reg.mem_re_2 <= DE_instr_reg.mem_re_2;
-        EM_instr_reg.reg_we <= DE_instr_reg.reg_we;
-        EM_instr_reg.rf_sel <= DE_instr_reg.rf_sel;
-        EM_instr_reg.alu_result <= alu_result;
-        EM_instr_reg.rs1 <= forward_a_out;
-        EM_instr_reg.rs2 <= forward_b_out;
-        EM_instr_reg.rs1_used <= DE_instr_reg.rs1_used;
-        EM_instr_reg.rs2_used <= DE_instr_reg.rs2_used;
+        if (rst) begin
+            EM_instr_reg <= '0;
+        end else begin
+            EM_instr_reg.ir <= DE_instr_reg.ir;
+            EM_instr_reg.pc <= DE_instr_reg.pc;
+            EM_instr_reg.mem_we <= DE_instr_reg.mem_we;
+            EM_instr_reg.mem_re_2 <= DE_instr_reg.mem_re_2;
+            EM_instr_reg.reg_we <= DE_instr_reg.reg_we;
+            EM_instr_reg.rf_sel <= DE_instr_reg.rf_sel;
+            EM_instr_reg.alu_result <= alu_result;
+            EM_instr_reg.rs1 <= forward_a_out;
+            EM_instr_reg.rs2 <= forward_b_out;
+            EM_instr_reg.rs1_used <= DE_instr_reg.rs1_used;
+            EM_instr_reg.rs2_used <= DE_instr_reg.rs2_used;
+        end
     end
 
     // ============= EX INFO FOR HAZARD UNIT ============= //
@@ -302,28 +304,32 @@ module OTTER_MCU(
         .MEM_RDEN1 (mem_re_1),
         .MEM_RDEN2 (EM_instr_reg.mem_re_2),
         .MEM_WE2   (EM_instr_reg.mem_we),
-        .MEM_ADDR1 (FD_pc[15:2]), // from fetch stage
+        .MEM_ADDR1 (pc_out[15:2]), // from fetch stage
         .MEM_ADDR2 (EM_instr_reg.alu_result),
         .MEM_DIN2  (EM_instr_reg.rs2),
         .MEM_SIZE  (EM_instr_reg.ir[13:12]),
         .MEM_SIGN  (EM_instr_reg.ir[14]),
         .IO_IN     (iobus_in), // from io
         .IO_WR     (iobus_wr), // from io
-        .MEM_DOUT1 (mem_ir), // to fetch stage
+        .MEM_DOUT1 (FD_ir), // to fetch stage
         .MEM_DOUT2 (MW_dmem_out)
     );
 
 
     always_ff @( posedge clk ) begin
-        MW_instr_reg.ir <= EM_instr_reg.ir;
-        MW_instr_reg.pc <= EM_instr_reg.pc;
-        MW_instr_reg.mem_we <= EM_instr_reg.mem_we;
-        MW_instr_reg.mem_re_2 <= EM_instr_reg.mem_re_2;
-        MW_instr_reg.reg_we <= EM_instr_reg.reg_we;
-        MW_instr_reg.rf_sel <= EM_instr_reg.rf_sel;
-        MW_instr_reg.alu_result <= EM_instr_reg.alu_result;
-        MW_instr_reg.rs1_used <= EM_instr_reg.rs1_used;
-        MW_instr_reg.rs2_used <= EM_instr_reg.rs2_used;
+        if (rst) begin
+            MW_instr_reg <= '0;
+        end else begin
+            MW_instr_reg.ir <= EM_instr_reg.ir;
+            MW_instr_reg.pc <= EM_instr_reg.pc;
+            MW_instr_reg.mem_we <= EM_instr_reg.mem_we;
+            MW_instr_reg.mem_re_2 <= EM_instr_reg.mem_re_2;
+            MW_instr_reg.reg_we <= EM_instr_reg.reg_we;
+            MW_instr_reg.rf_sel <= EM_instr_reg.rf_sel;
+            MW_instr_reg.alu_result <= EM_instr_reg.alu_result;
+            MW_instr_reg.rs1_used <= EM_instr_reg.rs1_used;
+            MW_instr_reg.rs2_used <= EM_instr_reg.rs2_used;
+        end
     end
 
     // ============= MEM INFO FOR HAZARD UNIT ============= //
