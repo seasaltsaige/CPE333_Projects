@@ -44,7 +44,7 @@ module pipeline_tb();
         buttons = 5'b01000; // reset
         #25
         buttons = 5'b00000;
-        #405
+        #221
         $finish;
     end
 

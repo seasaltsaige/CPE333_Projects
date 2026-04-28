@@ -59,11 +59,13 @@
     //output ERR,
     output logic IO_WR,     // IO 1-write 0-read
     output logic [31:0] MEM_DOUT1 = 32'h00000013,  // Instruction
-    output logic [31:0] MEM_DOUT2); // Data
+    output logic [31:0] MEM_DOUT2 = 32'h00000000); // Data
     
     logic [13:0] wordAddr1, wordAddr2;
     logic [31:0] memReadWord, ioBuffer, memReadSized;
     logic [1:0] byteOffset;
+    logic mem_sign;
+    logic [1:0] mem_size;
     logic weAddrValid;      // active when saving (WE) to valid memory address
        
     (* rom_style="{distributed | block}" *)
@@ -85,6 +87,9 @@
     always_ff @(posedge MEM_CLK) begin
         if(MEM_RDEN2)
             ioBuffer <= IO_IN;
+
+        mem_size <= MEM_SIZE;
+        mem_sign <= MEM_SIGN;
     end
     
     // BRAM requires all reads and writes to occur synchronously
@@ -113,16 +118,18 @@
         else if(MEM_RDEN1)                       // need EN for extra load cycle to not change instruction
             MEM_DOUT1 <= memory[MEM_ADDR1];
         
-    //    else
-        //    MEM_DOUT1 <= 32'h00000013;
 
-        if(MEM_RDEN2)                         // Read word from memory
+        if(MEM_RDEN2) begin                         // Read word from memory
             memReadWord <= memory[wordAddr2];
+        end 
+        //else begin
+          //  memReadWord <= 32'hDEADBEEF;
+        //end
     end
        
     // Change the data word into sized bytes and sign extend 
     always_comb begin
-        case({MEM_SIGN,MEM_SIZE,byteOffset})
+        case({mem_sign,mem_size,byteOffset})
             5'b00011: memReadSized = {{24{memReadWord[31]}},memReadWord[31:24]};    // signed byte
             5'b00010: memReadSized = {{24{memReadWord[23]}},memReadWord[23:16]};
             5'b00001: memReadSized = {{24{memReadWord[15]}},memReadWord[15:8]};
